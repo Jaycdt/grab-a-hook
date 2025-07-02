@@ -112,176 +112,29 @@
             </svg>
         );
 
-        // OpenAI API function
-        const callOpenAI = async (prompt, apiKey) => {
-            const response = await fetch('https://api.openai.com/v1/chat/completions', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${apiKey}`
-                },
-                body: JSON.stringify({
-                    model: 'gpt-4o-mini',
-                    messages: [
-                        {
-                            role: 'system',
-                            content: 'You are an expert content creator specializing in creating intellectually engaging lesson hooks. Generate only the hook text, no explanations.'
-                        },
-                        {
-                            role: 'user',
-                            content: prompt
-                        }
-                    ],
-                    max_tokens: 200,
-                    temperature: 0.8
-                })
-            });
+     // Replace your existing callOpenAI function with this:
+const callOpenAI = async (prompt) => {
+  try {
+    const response = await fetch('/.netlify/functions/generate-content', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ prompt }),
+    });
 
-            if (!response.ok) {
-                throw new Error(`OpenAI API error: ${response.status}`);
-            }
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error || 'Failed to generate content');
+    }
 
-            const data = await response.json();
-            return data.choices[0].message.content.trim();
-        };
-
-        const GrabAHook = () => {
-            const [apiKey, setApiKey] = React.useState('');
-            const [showApiKeySetup, setShowApiKeySetup] = React.useState(true);
-            const [topic, setTopic] = React.useState('');
-            const [contentType, setContentType] = React.useState('');
-            const [tone, setTone] = React.useState('');
-            const [additionalInfo, setAdditionalInfo] = React.useState('');
-            const [generatedHook, setGeneratedHook] = React.useState('');
-            const [isLoading, setIsLoading] = React.useState(false);
-
-            const contentTypes = [
-                { id: 'podcast', label: 'Podcast', icon: Mic },
-                { id: 'script', label: 'Script', icon: FileText },
-                { id: 'slides', label: 'Presentation/Slides', icon: Presentation },
-                { id: 'reading', label: 'Reading Material', icon: BookOpen },
-                { id: 'blog', label: 'Blog Post', icon: Globe },
-                { id: 'custom', label: 'Other/Custom', icon: Sparkles }
-            ];
-
-            const tones = [
-                'Professional',
-                'Conversational',
-                'Dramatic',
-                'Humorous',
-                'Inspiring',
-                'Mysterious',
-                'Casual',
-                'Academic'
-            ];
-
-            const hookStyles = [
-                'surprising statistic',
-                'real-world scenario',
-                'thought-provoking question',
-                'counterintuitive statement',
-                'current event connection',
-                'relatable situation',
-                'mini-story',
-                'bold declaration'
-            ];
-
-            // Check for saved API key on load
-            React.useEffect(() => {
-                const savedApiKey = localStorage.getItem('openai_api_key');
-                if (savedApiKey) {
-                    setApiKey(savedApiKey);
-                    setShowApiKeySetup(false);
-                }
-            }, []);
-
-            const saveApiKey = () => {
-                if (!apiKey.trim()) {
-                    alert('Please enter your OpenAI API key');
-                    return;
-                }
-                localStorage.setItem('openai_api_key', apiKey);
-                setShowApiKeySetup(false);
-            };
-
-            const clearApiKey = () => {
-                localStorage.removeItem('openai_api_key');
-                setApiKey('');
-                setShowApiKeySetup(true);
-            };
-
-            const generateHook = async () => {
-                if (!topic.trim() || !contentType || !tone) {
-                    alert('Please fill in the topic, content type, and tone fields.');
-                    return;
-                }
-
-                if (!apiKey) {
-                    alert('Please set your OpenAI API key first.');
-                    setShowApiKeySetup(true);
-                    return;
-                }
-
-                setIsLoading(true);
-                
-                try {
-                    const selectedStyle = hookStyles[Math.floor(Math.random() * hookStyles.length)];
-                    
-                    const prompt = `Create a sophisticated, intellectually engaging lesson hook opener for the topic: "${topic}"
-
-Content Format: ${contentType}
-Tone: ${tone}
-Hook Style: ${selectedStyle}
-${additionalInfo ? `Additional Context: ${additionalInfo}` : ''}
-
-RESEARCH-BASED HOOK TECHNIQUES:
-- Open with immediate value/insight
-- Use specific, concrete details that surprise
-- Ask questions that make people mentally lean in
-- Share unexpected connections or revelations
-- Lead with intriguing data points or research findings
-- Present real scenarios people can instantly relate to
-- Challenge assumptions without being preachy
-
-STRICTLY AVOID these overused phrases:
-"Picture this", "Imagine", "What if I told you", "Here's the thing", "Most people think", "The truth is", "Let me paint you a picture", "Think about it", "Here's what's interesting", "You might be surprised to learn"
-
-Hook Style Execution:
-- SURPRISING STATISTIC: Lead with a jaw-dropping, specific research finding or data point
-- REAL-WORLD SCENARIO: Open with a concrete situation happening right now somewhere
-- THOUGHT-PROVOKING QUESTION: Ask something that genuinely challenges their current thinking
-- COUNTERINTUITIVE STATEMENT: Present something that defies common sense (fresh language)
-- CURRENT EVENT CONNECTION: Tie directly to recent news, trends, or cultural moments
-- RELATABLE SITUATION: Start with universal experiences everyone recognizes
-- MINI-STORY: Brief, compelling narrative moment with specific details
-- BOLD DECLARATION: Strong, confident statement that demands attention
-
-Quality Standards:
-- Sound like top-tier educational content creators (Coursera, Udemy, premium podcasts)
-- Include specific, verifiable details when possible
-- Create immediate intellectual curiosity
-- Be conversational yet academically rigorous
-- Build momentum toward deeper exploration
-- 2-4 sentences maximum
-- Use fresh, original language
-
-Generate ONLY the hook text.`;
-
-                    const response = await callOpenAI(prompt, apiKey);
-                    setGeneratedHook(response);
-                } catch (error) {
-                    console.error('Error generating hook:', error);
-                    if (error.message.includes('401')) {
-                        alert('Invalid API key. Please check your OpenAI API key.');
-                        setShowApiKeySetup(true);
-                    } else {
-                        setGeneratedHook('Sorry, there was an error generating your hook. Please try again.');
-                    }
-                } finally {
-                    setIsLoading(false);
-                }
-            };
-
+    const data = await response.json();
+    return data.content;
+  } catch (error) {
+    console.error('Error generating content:', error);
+    throw error;
+  }
+};
             const copyToClipboard = () => {
                 navigator.clipboard.writeText(generatedHook);
                 const button = document.getElementById('copy-button');
